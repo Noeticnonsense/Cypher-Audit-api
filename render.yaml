@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cypher-audit-api
+    name: cypher-audit-api-v3
     runtime: docker
     plan: free
     healthCheckPath: /health
@@ -13,3 +13,5 @@ services:
         value: "500"
       - key: MAX_WORDLIST_ENTRIES
         value: "50000"
+      - key: MAX_ZIP_BYTES
+        value: "26214400"

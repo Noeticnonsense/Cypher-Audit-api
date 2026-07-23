@@ -1,46 +1,33 @@
-# Cipher Audit API v2
+# Cipher Audit API v3
 
-A bounded backend for **authorized offline password auditing**. It executes Hashcat or John the Ripper inside a Docker container, using only an allowlisted wordlist attack. It does not perform credential stuffing, online login attempts, network exploitation, arbitrary shell commands, or autonomous lateral movement.
+This version adds authorized password-protected ZIP uploads using John the Ripper Jumbo and `zip2john`.
 
-## Render deployment
+## Deploy
 
-1. Replace the files in your GitHub repository with this package.
-2. In Render, change the service runtime to **Docker** or create a new Docker Web Service from the repository.
-3. Keep `AUDIT_API_TOKEN` set to the same long value used by Base44.
-4. Health check: `/health`.
-5. Deploy. The health response should show `mode: bounded-live-worker` and engine availability.
+1. Replace the files in your GitHub `Cypher-Audit-api` repository with this package.
+2. Commit to `main`.
+3. In Render, deploy the latest commit. Keep the service runtime set to Docker.
+4. Keep the existing `AUDIT_API_TOKEN` unchanged.
+5. Open `/health` and confirm `jtr` and `zip2john` show `available`.
 
-Free Render instances are CPU-only, ephemeral, and sleep when idle. This backend is suitable for small proof-of-concept audits, not high-speed GPU cracking or durable job storage.
+## ZIP endpoint
 
-## Create a bounded audit job
+`POST /archives/zip` using `multipart/form-data` and `Authorization: Bearer <AUDIT_API_TOKEN>`.
 
-`POST /jobs` with Bearer authentication:
+Required form fields:
+- `archive`: one `.zip` file
+- `authorization_confirmed`: `true`
+- `scope_confirmed`: `true`
+- `wordlist_entries`: JSON array or newline-separated candidate passwords
 
-```json
-{
-  "authorization_confirmed": true,
-  "scope_confirmed": true,
-  "engagement_id": "eng-123",
-  "name": "Approved password audit",
-  "engine": "hashcat",
-  "hash_type": "sha256",
-  "max_runtime_minutes": 10,
-  "targets": [
-    {"account_identifier": "test-user", "hash": "<authorized offline hash>"}
-  ],
-  "wordlist_entries": ["candidate-one", "candidate-two"]
-}
-```
+Optional fields:
+- `engagement_id`
+- `organization_id`
+- `name`
+- `max_runtime_minutes`
 
-Start it with `POST /jobs/{id}/start`, poll `GET /jobs/{id}`, then read `GET /jobs/{id}/results`.
+The uploaded archive is deleted automatically after the job completes or fails.
 
-Supported hash types: `md5`, `sha1`, `sha256`, `ntlm`, `bcrypt`, `md5crypt`, `sha512crypt`.
+## Base44 prompt
 
-## Base44
-
-Set:
-
-- `AUDIT_API_BASE_URL=https://cypher-audit-api.onrender.com`
-- `AUDIT_API_TOKEN=<same long token as Render>`
-
-The plaintext reveal endpoint requires a reason and explicit authorization confirmation, returns `Cache-Control: no-store`, and logs the reveal. Add actual MFA verification in Base44 before calling it.
+Add an Authorized ZIP Audit form to the Password Audit area. It must upload one `.zip` file through a Base44 server-side function to `/archives/zip` as multipart form data. Require written authorization, confirmed scope, a maximum runtime, and a bounded candidate wordlist. Never expose `AUDIT_API_TOKEN` in browser code. After upload, call `/jobs/{id}/start`, poll `/jobs/{id}`, display metadata from `/jobs/{id}/results`, and use the existing controlled reveal workflow for recovered passwords.
