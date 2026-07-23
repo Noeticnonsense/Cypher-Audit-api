@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: cypher-audit-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: AUDIT_API_TOKEN
+        sync: false
+      - key: MAX_RUNTIME_MINUTES
+        value: "30"
+      - key: MAX_TARGETS
+        value: "500"
+      - key: MAX_WORDLIST_ENTRIES
+        value: "50000"
